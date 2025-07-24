@@ -6,7 +6,7 @@ const client = new Client({
 });
 
 // Store active sessions per guild (server)
-const activeSessions = new Map(); // guildId -> { interval, voiceChannel, textChannel, memberMentions }
+const activeSessions = new Map(); // guildId -> { interval, voiceChannel, textChannel }
 
 client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -96,8 +96,7 @@ client.on("interactionCreate", async (interaction) => {
             activeSessions.set(guildId, {
                 interval: reminderInterval,
                 voiceChannel: voiceChannel,
-                textChannel: interaction.channel,
-                memberMentions: memberMentions
+                textChannel: interaction.channel
             });
         }
 
