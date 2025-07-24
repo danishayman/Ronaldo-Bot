@@ -15,6 +15,12 @@ const commands = [
         .addSubcommand(sub =>
             sub.setName('stop')
                 .setDescription('Stop reminder'))
+        .addSubcommand(sub =>
+            sub.setName('join')
+                .setDescription('Join an active water reminder session'))
+        .addSubcommand(sub =>
+            sub.setName('leave')
+                .setDescription('Leave the current water reminder session'))
         .toJSON()
 ];
 

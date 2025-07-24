@@ -291,6 +291,181 @@ client.on("interactionCreate", async (interaction) => {
                 await interaction.reply({ embeds: [noSessionEmbed] });
             }
         }
+
+        if (sub === "join") {
+            const guildId = interaction.guild.id;
+            const session = activeSessions.get(guildId);
+            
+            // Check if there's an active session
+            if (!session) {
+                const noSessionEmbed = {
+                    color: 0xFFB347, // Orange
+                    title: "❌ No Active Session",
+                    description: "No active water reminder session found in this server. Use `/ronaldo start` to create one!",
+                    thumbnail: {
+                        url: "https://i.pinimg.com/originals/b1/61/93/b161939871b60e6aee558048a2b332a2.gif"
+                    }
+                };
+                
+                await interaction.reply({ embeds: [noSessionEmbed], ephemeral: true });
+                return;
+            }
+
+            // Check if user is in a voice channel
+            const userVoiceChannel = interaction.member.voice.channel;
+            if (!userVoiceChannel) {
+                await interaction.reply({
+                    content: "❌ You must be in a voice channel to join the session.",
+                    ephemeral: true,
+                });
+                return;
+            }
+
+            // Check if user is in the same voice channel as the session
+            if (userVoiceChannel.id !== session.voiceChannel.id) {
+                await interaction.reply({
+                    content: `❌ You must be in the same voice channel as the active session: ${session.voiceChannel.name}`,
+                    ephemeral: true,
+                });
+                return;
+            }
+
+            // Check if user is already a participant
+            if (session.participants.has(interaction.user.id)) {
+                await interaction.reply({
+                    content: "✅ You're already participating in this water reminder session!",
+                    ephemeral: true,
+                });
+                return;
+            }
+
+            // Add user to participants
+            session.participants.add(interaction.user.id);
+
+            // Send success message
+            const joinEmbed = {
+                color: 0x00FF00, // Green
+                title: "🎉 Successfully Joined! 🥤",
+                description: `**SIUUUU!** <@${interaction.user.id}> has joined the hydration session!\n\nYou will now receive water reminders with the group. Stay legendary! 🏆`,
+                thumbnail: {
+                    url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
+                },
+                footer: {
+                    text: "Welcome to the hydration squad! 💧"
+                },
+                timestamp: new Date().toISOString()
+            };
+
+            await interaction.reply({ embeds: [joinEmbed] });
+
+            // Notify the session channel about the new participant
+            if (session.textChannel && session.textChannel.id !== interaction.channel.id) {
+                const notifyEmbed = {
+                    color: 0x32CD32, // Lime Green
+                    title: "👋 New Participant Joined!",
+                    description: `<@${interaction.user.id}> has joined the water reminder session!`,
+                    thumbnail: {
+                        url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
+                    },
+                    footer: {
+                        text: "The hydration squad grows stronger! 💪"
+                    }
+                };
+                
+                session.textChannel.send({ embeds: [notifyEmbed] });
+            }
+        }
+
+        if (sub === "leave") {
+            const guildId = interaction.guild.id;
+            const session = activeSessions.get(guildId);
+            
+            // Check if there's an active session
+            if (!session) {
+                const noSessionEmbed = {
+                    color: 0xFFB347, // Orange
+                    title: "❌ No Active Session",
+                    description: "No active water reminder session found in this server.",
+                    thumbnail: {
+                        url: "https://i.pinimg.com/originals/b1/61/93/b161939871b60e6aee558048a2b332a2.gif"
+                    }
+                };
+                
+                await interaction.reply({ embeds: [noSessionEmbed], ephemeral: true });
+                return;
+            }
+
+            // Check if user is currently a participant
+            if (!session.participants.has(interaction.user.id)) {
+                await interaction.reply({
+                    content: "❌ You're not currently participating in any water reminder session!",
+                    ephemeral: true,
+                });
+                return;
+            }
+
+            // Remove user from participants
+            session.participants.delete(interaction.user.id);
+
+            // Check if there are any participants left
+            if (session.participants.size === 0) {
+                // No participants left, end the session
+                clearInterval(session.interval);
+                activeSessions.delete(guildId);
+                
+                const sessionEndedEmbed = {
+                    color: 0xFF6B6B, // Red
+                    title: "🛑 Session Ended",
+                    description: "Water reminder session ended - no participants remaining.",
+                    thumbnail: {
+                        url: "https://i.giphy.com/31dFkd4JqFTV8NPDac.webp"
+                    },
+                    footer: {
+                        text: "Thanks for staying hydrated! 💧"
+                    }
+                };
+
+                await interaction.reply({ embeds: [sessionEndedEmbed] });
+
+                // Notify the session channel if different
+                if (session.textChannel && session.textChannel.id !== interaction.channel.id) {
+                    session.textChannel.send({ embeds: [sessionEndedEmbed] });
+                }
+            } else {
+                // Participants remain, just confirm the leave
+                const leaveEmbed = {
+                    color: 0xFFA500, // Orange
+                    title: "👋 Successfully Left! 🥤",
+                    description: `**Goodbye!** <@${interaction.user.id}> has left the hydration session.\n\nYou will no longer receive water reminders. Remember to stay hydrated on your own! 💧`,
+                    thumbnail: {
+                        url: "https://i.pinimg.com/originals/28/2f/28/282f28cc7846ad1c08794852f35c787b.gif"
+                    },
+                    footer: {
+                        text: "Take care and stay hydrated! 🏆"
+                    },
+                    timestamp: new Date().toISOString()
+                };
+
+                await interaction.reply({ embeds: [leaveEmbed] });
+
+                // Notify the session channel about the participant leaving
+                if (session.textChannel && session.textChannel.id !== interaction.channel.id) {
+                    const notifyEmbed = {
+                        color: 0xFFA500, // Orange
+                        title: "👋 Participant Left",
+                        description: `<@${interaction.user.id}> has left the water reminder session.`,
+                        thumbnail: {
+                            url: "https://i.pinimg.com/originals/28/2f/28/282f28cc7846ad1c08794852f35c787b.gif"
+                        },
+                        footer: {
+                            text: `${session.participants.size} participant(s) remaining`
+                        }
+                    };
+                    
+                    session.textChannel.send({ embeds: [notifyEmbed] });
+                }
+            }
+        }
     }
 });
 
