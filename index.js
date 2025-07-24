@@ -17,17 +17,20 @@ client.on("voiceStateUpdate", (oldState, newState) => {
     for (const [guildId, session] of activeSessions.entries()) {
         const { interval, voiceChannel, textChannel } = session;
         
-        // Check if someone left the monitored voice channel
-        if (oldState.channelId === voiceChannel.id && newState.channelId !== voiceChannel.id) {
-            // Check if the voice channel is now empty
-            if (voiceChannel.members.size === 0) {
+        // Check if the voice state change affects our monitored voice channel
+        if (oldState.channelId === voiceChannel.id || newState.channelId === voiceChannel.id) {
+            // Count only human members (exclude bots)
+            const humanMembers = voiceChannel.members.filter(member => !member.user.bot);
+            
+            // Check if no humans are left in the voice channel
+            if (humanMembers.size === 0) {
                 // Stop the reminder session for this guild
                 clearInterval(interval);
                 activeSessions.delete(guildId);
                 
                 // Send a message to the text channel that the session has ended
                 if (textChannel) {
-                    textChannel.send("🛑 Water reminder session ended - everyone left the voice channel.");
+                    textChannel.send("🛑 Water reminder session ended - no humans left in the voice channel.");
                 }
             }
         }
@@ -62,7 +65,7 @@ client.on("interactionCreate", async (interaction) => {
                 return;
             }
 
-            const members = [...voiceChannel.members.values()];
+            const members = [...voiceChannel.members.values()].filter(member => !member.user.bot);
             const memberMentions = members
                 .map((member) => `<@${member.id}>`)
                 .join(" ");
@@ -72,13 +75,20 @@ client.on("interactionCreate", async (interaction) => {
             );
 
             const reminderInterval = setInterval(() => {
-                // Check if the voice channel still exists and has members before sending reminder
-                if (voiceChannel && voiceChannel.members.size > 0) {
-                    interaction.channel.send(`💧 ${memberMentions} — DRINK WATER! 🥤`);
+                // Get current human members in the voice channel
+                const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
+                
+                if (currentHumanMembers.size > 0) {
+                    // Create current member mentions
+                    const currentMemberMentions = currentHumanMembers
+                        .map((member) => `<@${member.id}>`)
+                        .join(" ");
+                    interaction.channel.send(`💧 ${currentMemberMentions} — DRINK WATER! 🥤`);
                 } else {
-                    // Stop the session if voice channel is empty or doesn't exist
+                    // Stop the session if no humans are left in voice channel
                     clearInterval(reminderInterval);
                     activeSessions.delete(guildId);
+                    interaction.channel.send("🛑 Water reminder session ended - no humans left in the voice channel.");
                 }
             }, intervalMinutes * 60 * 1000);
 
