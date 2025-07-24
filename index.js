@@ -1,8 +1,13 @@
 require("dotenv").config();
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, Partials } = require("discord.js");
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
+    intents: [
+        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions
+    ],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
 // Store active sessions per guild (server)
@@ -74,6 +79,16 @@ client.on("voiceStateUpdate", (oldState, newState) => {
 
 // Handle reaction collection for opt-in
 client.on("messageReactionAdd", async (reaction, user) => {
+    // When a reaction is received, check if it's partial and fetch if necessary
+    if (reaction.partial) {
+        try {
+            await reaction.fetch();
+        } catch (error) {
+            console.log('Something went wrong when fetching the message: ', error);
+            return;
+        }
+    }
+
     // Check if the reaction is on a pending session message
     for (const [guildId, pendingSession] of pendingSessions.entries()) {
         if (pendingSession.message && pendingSession.message.id === reaction.message.id) {
@@ -91,25 +106,26 @@ client.on("messageReactionAdd", async (reaction, user) => {
                     if (!pendingSession.participants.has(user.id)) {
                         pendingSession.participants.add(user.id);
                         
-                        // Update the embed to show current participants
+                        // Update the message to show current participants
                         const participantsList = Array.from(pendingSession.participants)
                             .map(userId => `<@${userId}>`)
                             .join(" ");
                         
-                        const updatedEmbed = {
-                            color: 0x00BFFF, // Deep Sky Blue
-                            title: "💧 Water Reminder - Waiting for Participants! 🥤",
-                            description: `**SIUUUU!** React with ✅ to join the hydration session!\n\n⏰ **Interval:** Every ${pendingSession.intervalMinutes} minutes\n👥 **Current Participants:** ${participantsList || "None yet"}`,
-                            thumbnail: {
-                                url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
-                            },
-                            footer: {
-                                text: "React with ✅ to join • Session starts in 30 seconds"
-                            },
-                            timestamp: new Date().toISOString()
-                        };
+                        const updatedMessage = `💧 **Water Reminder - Waiting for Participants!** 🥤
+
+**SIUUUU!** React with ✅ to join the hydration session!
+
+⏰ **Interval:** Every ${pendingSession.intervalMinutes} minutes
+👥 **Current Participants:** ${participantsList}
+
+React with ✅ to join • Session starts in 30 seconds`;
                         
-                        await pendingSession.message.edit({ embeds: [updatedEmbed] });
+                        try {
+                            await pendingSession.message.edit({ content: updatedMessage });
+                            console.log(`Added user ${user.tag} to pending session in guild ${guildId}`);
+                        } catch (error) {
+                            console.log('Error updating message: ', error);
+                        }
                     }
                 }
             }
@@ -188,20 +204,16 @@ client.on("interactionCreate", async (interaction) => {
                     .map(member => `<@${member.id}>`)
                     .join(" ");
                 
-                const initialEmbed = {
-                    color: 0x00BFFF, // Deep Sky Blue
-                    title: "💧 Water Reminder - Waiting for Participants! 🥤",
-                    description: `**SIUUUU!** ${otherMemberMentions} React with ✅ to join the hydration session!\n\n⏰ **Interval:** Every ${intervalMinutes} minutes\n👥 **Current Participants:** <@${interaction.user.id}>`,
-                    thumbnail: {
-                        url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
-                    },
-                    footer: {
-                        text: "React with ✅ to join • Session starts in 30 seconds"
-                    },
-                    timestamp: new Date().toISOString()
-                };
+                const initialMessage = `💧 **Water Reminder - Waiting for Participants!** 🥤
 
-                const message = await interaction.reply({ embeds: [initialEmbed], fetchReply: true });
+**SIUUUU!** ${otherMemberMentions} React with ✅ to join the hydration session!
+
+⏰ **Interval:** Every ${intervalMinutes} minutes
+👥 **Current Participants:** <@${interaction.user.id}>
+
+React with ✅ to join • Session starts in 30 seconds`;
+
+                const message = await interaction.reply({ content: initialMessage, fetchReply: true });
                 await message.react("✅");
 
                 // Store the pending session
