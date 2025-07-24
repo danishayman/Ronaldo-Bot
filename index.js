@@ -47,6 +47,18 @@ client.on("interactionCreate", async (interaction) => {
             const intervalMinutes = interaction.options.getInteger("interval");
             const guildId = interaction.guild.id;
 
+            // Validate interval range to prevent spam
+            const minInterval = 20; // 20 minutes
+            const maxInterval = 180; // 180 minutes (3 hours)
+
+            if (intervalMinutes < minInterval || intervalMinutes > maxInterval) {
+                await interaction.reply({
+                    content: `❌ Interval must be between ${minInterval} and ${maxInterval} minutes.`,
+                    ephemeral: true,
+                });
+                return;
+            }
+
             // Check if there's already an active session in this server
             if (activeSessions.has(guildId)) {
                 await interaction.reply({
