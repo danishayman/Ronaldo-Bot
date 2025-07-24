@@ -6,7 +6,8 @@ const client = new Client({
 });
 
 // Store active sessions per guild (server)
-const activeSessions = new Map(); // guildId -> { interval, voiceChannel, textChannel }
+const activeSessions = new Map(); // guildId -> { interval, voiceChannel, textChannel, participants }
+const pendingSessions = new Map(); // guildId -> { message, voiceChannel, textChannel, interval }
 
 client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -15,7 +16,7 @@ client.once("ready", () => {
 client.on("voiceStateUpdate", (oldState, newState) => {
     // Check all active sessions to see if any voice channels became empty
     for (const [guildId, session] of activeSessions.entries()) {
-        const { interval, voiceChannel, textChannel } = session;
+        const { interval, voiceChannel, textChannel, participants } = session;
         
         // Check if the voice state change affects our monitored voice channel
         if (oldState.channelId === voiceChannel.id || newState.channelId === voiceChannel.id) {
@@ -35,12 +36,84 @@ client.on("voiceStateUpdate", (oldState, newState) => {
                         title: "🛑 Session Ended",
                         description: "Water reminder session ended - no humans left in the voice channel.",
                         thumbnail: {
-                            url: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif" // Sad goodbye GIF
+                            url: "https://i.giphy.com/31dFkd4JqFTV8NPDac.webp" // Sad goodbye GIF
                         }
                     };
                     textChannel.send({ embeds: [endEmbed] });
                 }
             }
+        }
+    }
+    
+    // Check pending sessions to see if any voice channels became empty
+    for (const [guildId, pendingSession] of pendingSessions.entries()) {
+        const { voiceChannel, textChannel } = pendingSession;
+        
+        if (oldState.channelId === voiceChannel.id || newState.channelId === voiceChannel.id) {
+            const humanMembers = voiceChannel.members.filter(member => !member.user.bot);
+            
+            if (humanMembers.size === 0) {
+                // Cancel the pending session
+                pendingSessions.delete(guildId);
+                
+                if (textChannel) {
+                    const cancelEmbed = {
+                        color: 0xFF6B6B, // Red
+                        title: "🛑 Session Cancelled",
+                        description: "Water reminder session cancelled - no humans left in the voice channel.",
+                        thumbnail: {
+                            url: "https://i.giphy.com/31dFkd4JqFTV8NPDac.webp" // Sad goodbye GIF
+                        }
+                    };
+                    textChannel.send({ embeds: [cancelEmbed] });
+                }
+            }
+        }
+    }
+});
+
+// Handle reaction collection for opt-in
+client.on("messageReactionAdd", async (reaction, user) => {
+    // Check if the reaction is on a pending session message
+    for (const [guildId, pendingSession] of pendingSessions.entries()) {
+        if (pendingSession.message && pendingSession.message.id === reaction.message.id) {
+            if (reaction.emoji.name === "✅" && !user.bot) {
+                // Check if user is still in the voice channel
+                const voiceChannel = pendingSession.voiceChannel;
+                const member = voiceChannel.guild.members.cache.get(user.id);
+                
+                if (member && member.voice.channel && member.voice.channel.id === voiceChannel.id) {
+                    // Add user to participants if not already added
+                    if (!pendingSession.participants) {
+                        pendingSession.participants = new Set();
+                    }
+                    
+                    if (!pendingSession.participants.has(user.id)) {
+                        pendingSession.participants.add(user.id);
+                        
+                        // Update the embed to show current participants
+                        const participantsList = Array.from(pendingSession.participants)
+                            .map(userId => `<@${userId}>`)
+                            .join(" ");
+                        
+                        const updatedEmbed = {
+                            color: 0x00BFFF, // Deep Sky Blue
+                            title: "💧 Water Reminder - Waiting for Participants! 🥤",
+                            description: `**SIUUUU!** React with ✅ to join the hydration session!\n\n⏰ **Interval:** Every ${pendingSession.intervalMinutes} minutes\n👥 **Current Participants:** ${participantsList || "None yet"}`,
+                            thumbnail: {
+                                url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
+                            },
+                            footer: {
+                                text: "React with ✅ to join • Session starts in 30 seconds"
+                            },
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        await pendingSession.message.edit({ embeds: [updatedEmbed] });
+                    }
+                }
+            }
+            break;
         }
     }
 });
@@ -56,7 +129,7 @@ client.on("interactionCreate", async (interaction) => {
             const guildId = interaction.guild.id;
 
             // Validate interval range to prevent spam
-            const minInterval = 20; // 20 minutes
+            const minInterval = 1; // 20 minutes
             const maxInterval = 180; // 180 minutes (3 hours)
 
             if (intervalMinutes < minInterval || intervalMinutes > maxInterval) {
@@ -67,10 +140,10 @@ client.on("interactionCreate", async (interaction) => {
                 return;
             }
 
-            // Check if there's already an active session in this server
-            if (activeSessions.has(guildId)) {
+            // Check if there's already an active session or pending session in this server
+            if (activeSessions.has(guildId) || pendingSessions.has(guildId)) {
                 await interaction.reply({
-                    content: "❌ There's already an active water reminder session in this server. Use `/ronaldo stop` to end it first.",
+                    content: "❌ There's already an active or pending water reminder session in this server. Use `/ronaldo stop` to end it first.",
                     ephemeral: true,
                 });
                 return;
@@ -85,79 +158,92 @@ client.on("interactionCreate", async (interaction) => {
                 return;
             }
 
+            // Check if there are other people in the voice channel besides the initiator
             const members = [...voiceChannel.members.values()].filter(member => !member.user.bot);
-            const memberMentions = members
-                .map((member) => `<@${member.id}>`)
-                .join(" ");
+            const otherMembers = members.filter(member => member.id !== interaction.user.id);
+            
+            if (otherMembers.length === 0) {
+                // If only the initiator is in the channel, start immediately
+                const startEmbed = {
+                    color: 0x00BFFF, // Deep Sky Blue
+                    title: "💧 Water Reminder Session Started! 🥤",
+                    description: `**SIUUUU!** Time to stay hydrated like a champion!\n\n⏰ **Interval:** Every ${intervalMinutes} minutes\n👥 **Participants:** <@${interaction.user.id}>`,
+                    thumbnail: {
+                        url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
+                    },
+                    footer: {
+                        text: "Stay hydrated, stay legendary! 🏆"
+                    },
+                    timestamp: new Date().toISOString()
+                };
 
-            const startEmbed = {
-                color: 0x00BFFF, // Deep Sky Blue
-                title: "💧 Water Reminder Session Started! 🥤",
-                description: `**SIUUUU!** Time to stay hydrated like a champion!\n\n⏰ **Interval:** Every ${intervalMinutes} minutes\n👥 **Participants:** ${memberMentions}`,
-                thumbnail: {
-                    url: "https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif" // Cristiano Ronaldo drinking water GIF
-                },
-                footer: {
-                    text: "Stay hydrated, stay legendary! 🏆"
-                },
-                timestamp: new Date().toISOString()
-            };
-
-            await interaction.reply({ embeds: [startEmbed] });
-
-            const reminderInterval = setInterval(() => {
-                // Get current human members in the voice channel
-                const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
+                await interaction.reply({ embeds: [startEmbed] });
                 
-                if (currentHumanMembers.size > 0) {
-                    // Create current member mentions
-                    const currentMemberMentions = currentHumanMembers
-                        .map((member) => `<@${member.id}>`)
-                        .join(" ");
-                    
-                    const reminderEmbed = {
-                        color: 0x1E90FF, // Dodger Blue
-                        title: "💧 HYDRATION TIME! 🥤",
-                        description: `**${currentMemberMentions}**\n\n🌊 **DRINK WATER NOW!** 🌊\n\n*"Water is the driving force of all nature." - Leonardo da Vinci*`,
-                        image: {
-                            url: "https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif" // Water drinking GIF
-                        },
-                        footer: {
-                            text: "Ronaldo Bot • Stay hydrated! 💪"
-                        },
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    interaction.channel.send({ embeds: [reminderEmbed] });
-                } else {
-                    // Stop the session if no humans are left in voice channel
-                    clearInterval(reminderInterval);
-                    activeSessions.delete(guildId);
-                    
-                    const endEmbed = {
-                        color: 0xFF6B6B, // Red
-                        title: "🛑 Session Ended",
-                        description: "Water reminder session ended - no humans left in the voice channel.",
-                        thumbnail: {
-                            url: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif" // Sad goodbye GIF
-                        }
-                    };
-                    
-                    interaction.channel.send({ embeds: [endEmbed] });
-                }
-            }, intervalMinutes * 60 * 1000);
+                // Start the reminder session immediately with only the initiator
+                const participants = new Set([interaction.user.id]);
+                startReminderSession(guildId, voiceChannel, interaction.channel, intervalMinutes, participants);
+            } else {
+                // If there are other people, start the opt-in process
+                const otherMemberMentions = otherMembers
+                    .map(member => `<@${member.id}>`)
+                    .join(" ");
+                
+                const initialEmbed = {
+                    color: 0x00BFFF, // Deep Sky Blue
+                    title: "💧 Water Reminder - Waiting for Participants! 🥤",
+                    description: `**SIUUUU!** ${otherMemberMentions} React with ✅ to join the hydration session!\n\n⏰ **Interval:** Every ${intervalMinutes} minutes\n👥 **Current Participants:** <@${interaction.user.id}>`,
+                    thumbnail: {
+                        url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
+                    },
+                    footer: {
+                        text: "React with ✅ to join • Session starts in 30 seconds"
+                    },
+                    timestamp: new Date().toISOString()
+                };
 
-            // Store the session data for this guild
-            activeSessions.set(guildId, {
-                interval: reminderInterval,
-                voiceChannel: voiceChannel,
-                textChannel: interaction.channel
-            });
+                const message = await interaction.reply({ embeds: [initialEmbed], fetchReply: true });
+                await message.react("✅");
+
+                // Store the pending session
+                const participants = new Set([interaction.user.id]); // Initiator is automatically included
+                pendingSessions.set(guildId, {
+                    message: message,
+                    voiceChannel: voiceChannel,
+                    textChannel: interaction.channel,
+                    intervalMinutes: intervalMinutes,
+                    participants: participants
+                });
+
+                // Start the session after 30 seconds
+                setTimeout(() => {
+                    const pendingSession = pendingSessions.get(guildId);
+                    if (pendingSession) {
+                        pendingSessions.delete(guildId);
+                        
+                        // Check if there are still people in the voice channel
+                        const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
+                        if (currentHumanMembers.size > 0) {
+                            startReminderSession(guildId, voiceChannel, interaction.channel, intervalMinutes, pendingSession.participants);
+                        } else {
+                            const cancelEmbed = {
+                                color: 0xFF6B6B, // Red
+                                title: "🛑 Session Cancelled",
+                                description: "Water reminder session cancelled - no humans left in the voice channel.",
+                                thumbnail: {
+                                    url: "https://i.giphy.com/31dFkd4JqFTV8NPDac.webp"
+                                }
+                            };
+                            interaction.channel.send({ embeds: [cancelEmbed] });
+                        }
+                    }
+                }, 30000); // 30 seconds
+            }
         }
 
         if (sub === "stop") {
             const guildId = interaction.guild.id;
             const session = activeSessions.get(guildId);
+            const pendingSession = pendingSessions.get(guildId);
             
             if (session) {
                 clearInterval(session.interval);
@@ -168,7 +254,23 @@ client.on("interactionCreate", async (interaction) => {
                     title: "🛑 Water Reminder Stopped",
                     description: "The water reminder session has been manually stopped.",
                     thumbnail: {
-                        url: "https://media.giphy.com/media/l1J9EdzfOSgfyueLm/giphy.gif" // Stop hand GIF
+                        url: "https://i.pinimg.com/originals/28/2f/28/282f28cc7846ad1c08794852f35c787b.gif"
+                    },
+                    footer: {
+                        text: "Remember to stay hydrated! 💧"
+                    }
+                };
+                
+                await interaction.reply({ embeds: [stopEmbed] });
+            } else if (pendingSession) {
+                pendingSessions.delete(guildId);
+                
+                const stopEmbed = {
+                    color: 0xFF6B6B, // Red
+                    title: "🛑 Water Reminder Cancelled",
+                    description: "The pending water reminder session has been cancelled.",
+                    thumbnail: {
+                        url: "https://i.pinimg.com/originals/28/2f/28/282f28cc7846ad1c08794852f35c787b.gif"
                     },
                     footer: {
                         text: "Remember to stay hydrated! 💧"
@@ -180,9 +282,9 @@ client.on("interactionCreate", async (interaction) => {
                 const noSessionEmbed = {
                     color: 0xFFB347, // Orange
                     title: "❌ No Active Session",
-                    description: "No active reminder session found in this server.",
+                    description: "No active or pending reminder session found in this server.",
                     thumbnail: {
-                        url: "https://media.giphy.com/media/26AHPxxnSw1L9T1rW/giphy.gif" // Confused GIF
+                        url: "https://i.pinimg.com/originals/b1/61/93/b161939871b60e6aee558048a2b332a2.gif"
                     }
                 };
                 
@@ -191,5 +293,83 @@ client.on("interactionCreate", async (interaction) => {
         }
     }
 });
+
+// Helper function to start the reminder session
+function startReminderSession(guildId, voiceChannel, textChannel, intervalMinutes, participants) {
+    const participantsList = Array.from(participants)
+        .map(userId => `<@${userId}>`)
+        .join(" ");
+
+    const startEmbed = {
+        color: 0x00FF00, // Green
+        title: "🚀 Water Reminder Session Started! 🥤",
+        description: `**SIUUUU!** Time to stay hydrated like a champion!\n\n⏰ **Interval:** Every ${intervalMinutes} minutes\n👥 **Participants:** ${participantsList}`,
+        thumbnail: {
+            url: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif"
+        },
+        footer: {
+            text: "Stay hydrated, stay legendary! 🏆"
+        },
+        timestamp: new Date().toISOString()
+    };
+
+    textChannel.send({ embeds: [startEmbed] });
+
+    const reminderInterval = setInterval(() => {
+        // Get current human members in the voice channel
+        const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
+        
+        if (currentHumanMembers.size > 0) {
+            // Only mention participants who are still in the voice channel
+            const activeParticipants = Array.from(participants).filter(userId => {
+                return currentHumanMembers.has(userId);
+            });
+            
+            if (activeParticipants.length > 0) {
+                const activeMentions = activeParticipants
+                    .map(userId => `<@${userId}>`)
+                    .join(" ");
+                
+                const reminderEmbed = {
+                    color: 0x1E90FF, // Dodger Blue
+                    title: "💧 HYDRATION TIME! 🥤",
+                    description: `**${activeMentions}**\n\n🌊 **DRINK WATER NOW!** 🌊\n\n*"Water is the driving force of all nature." - Leonardo da Vinci*`,
+                    image: {
+                        url: "https://media.tenor.com/NF6ixwAmrTMAAAAM/cristiano-ronaldo-drinking.gif"
+                    },
+                    footer: {
+                        text: "Ronaldo Bot • Stay hydrated! 💪"
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
+                textChannel.send({ embeds: [reminderEmbed] });
+            }
+        } else {
+            // Stop the session if no humans are left in voice channel
+            clearInterval(reminderInterval);
+            activeSessions.delete(guildId);
+            
+            const endEmbed = {
+                color: 0xFF6B6B, // Red
+                title: "🛑 Session Ended",
+                description: "Water reminder session ended - no humans left in the voice channel.",
+                thumbnail: {
+                    url: "https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif"
+                }
+            };
+            
+            textChannel.send({ embeds: [endEmbed] });
+        }
+    }, intervalMinutes * 60 * 1000);
+
+    // Store the session data for this guild
+    activeSessions.set(guildId, {
+        interval: reminderInterval,
+        voiceChannel: voiceChannel,
+        textChannel: textChannel,
+        participants: participants
+    });
+}
 
 client.login(process.env.DISCORD_TOKEN);
