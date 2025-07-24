@@ -6,9 +6,35 @@ const client = new Client({
 });
 
 let reminderInterval = null;
+let activeVoiceChannel = null;
+let activeTextChannel = null;
 
 client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}`);
+});
+
+client.on("voiceStateUpdate", (oldState, newState) => {
+    // Only monitor if there's an active reminder session
+    if (!reminderInterval || !activeVoiceChannel) return;
+
+    // Check if someone left the monitored voice channel
+    if (oldState.channelId === activeVoiceChannel.id && newState.channelId !== activeVoiceChannel.id) {
+        // Check if the voice channel is now empty
+        if (activeVoiceChannel.members.size === 0) {
+            // Stop the reminder session
+            clearInterval(reminderInterval);
+            reminderInterval = null;
+            
+            // Send a message to the text channel that the session has ended
+            if (activeTextChannel) {
+                activeTextChannel.send("🛑 Water reminder session ended - everyone left the voice channel.");
+            }
+            
+            // Reset tracking variables
+            activeVoiceChannel = null;
+            activeTextChannel = null;
+        }
+    }
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -29,17 +55,36 @@ client.on("interactionCreate", async (interaction) => {
                 return;
             }
 
+            // Stop any existing session before starting a new one
+            if (reminderInterval) {
+                clearInterval(reminderInterval);
+                reminderInterval = null;
+            }
+
             const members = [...voiceChannel.members.values()];
             const memberMentions = members
                 .map((member) => `<@${member.id}>`)
                 .join(" ");
+
+            // Store the voice channel and text channel for monitoring
+            activeVoiceChannel = voiceChannel;
+            activeTextChannel = interaction.channel;
 
             await interaction.reply(
                 `💧 Starting water reminders every ${intervalMinutes} minutes for: ${memberMentions}`
             );
 
             reminderInterval = setInterval(() => {
-                interaction.channel.send(`💧 ${memberMentions} — DRINK WATER! 🥤`);
+                // Check if the voice channel still exists and has members before sending reminder
+                if (activeVoiceChannel && activeVoiceChannel.members.size > 0) {
+                    interaction.channel.send(`💧 ${memberMentions} — DRINK WATER! 🥤`);
+                } else {
+                    // Stop the session if voice channel is empty or doesn't exist
+                    clearInterval(reminderInterval);
+                    reminderInterval = null;
+                    activeVoiceChannel = null;
+                    activeTextChannel = null;
+                }
             }, intervalMinutes * 60 * 1000);
         }
 
@@ -47,6 +92,8 @@ client.on("interactionCreate", async (interaction) => {
             if (reminderInterval) {
                 clearInterval(reminderInterval);
                 reminderInterval = null;
+                activeVoiceChannel = null;
+                activeTextChannel = null;
                 await interaction.reply("🛑 Stopped water reminder session.");
             } else {
                 await interaction.reply("❌ No active reminder session.");
