@@ -1,4 +1,5 @@
 const { COLORS, MEDIA } = require('../config');
+const waterReminders = require('../data/waterReminders.json');
 
 class SessionManager {
     constructor() {
@@ -103,6 +104,12 @@ class SessionManager {
         return session ? session.participants.has(userId) : false;
     }
 
+    // Get a random water reminder message and GIF
+    _getRandomReminder() {
+        const randomIndex = Math.floor(Math.random() * waterReminders.messages.length);
+        return waterReminders.messages[randomIndex];
+    }
+
     // Private method to send reminder
     _sendReminder(voiceChannel, textChannel, participants, intervalMinutes, guildId) {
         // Get current human members in the voice channel
@@ -119,7 +126,19 @@ class SessionManager {
                     .map(userId => `<@${userId}>`)
                     .join(" ");
                 
-                const reminderMessage = `💧 **HYDRATION TIME!** 🥤\n\n${activeMentions}\n\n🌊 **DRINK WATER NOW!** 🌊\n\n*"Water is the driving force of all nature." - Leonardo da Vinci*`;
+                // Get a random reminder message and GIF
+                const randomReminder = this._getRandomReminder();
+                
+                // Send as plain text message instead of embed
+                const reminderMessage = `💧 **HYDRATION REMINDER!** 💧
+
+${activeMentions}
+
+${randomReminder.text}
+
+${randomReminder.gif}
+
+⏰ Next reminder in ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''} • Today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
                 
                 textChannel.send(reminderMessage);
             }
