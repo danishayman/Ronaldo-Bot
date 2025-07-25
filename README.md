@@ -8,7 +8,7 @@
 
 [![Discord.js](https://img.shields.io/badge/Discord.js-v14.21.0-blue?style=for-the-badge&logo=discord)](https://discord.js.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v16+-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-ISC-yellow?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -523,13 +523,13 @@ We welcome contributions! Here's how to get started:
 
 ## 📄 License
 
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**Made with ❤️ and lots of 💧 by [@danishayman](https://github.com/danishayman)**
+**Made with ❤️ and lots of 💧
 
 **SIUUUU! 🐐⚽**
 
