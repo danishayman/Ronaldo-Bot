@@ -86,10 +86,20 @@ React with ✅ to join • Session starts in 30 seconds`;
                     // Check if there are still people in the voice channel
                     const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
                     if (currentHumanMembers.size > 0) {
-                        sessionManager.startActiveSession(guildId, voiceChannel, interaction.channel, intervalMinutes, pendingSession.participants);
+                        // Pass the pending message to be deleted when starting the active session
+                        sessionManager.startActiveSession(guildId, voiceChannel, interaction.channel, intervalMinutes, pendingSession.participants, pendingSession.message);
                     } else {
-                        const cancelEmbed = EmbedBuilder.createSessionEndEmbed("Water reminder session cancelled - no humans left in the voice channel.");
-                        interaction.channel.send({ embeds: [cancelEmbed] });
+                        // Delete the pending message before sending cancellation
+                        pendingSession.message.delete()
+                            .then(() => {
+                                const cancelEmbed = EmbedBuilder.createSessionEndEmbed("Water reminder session cancelled - no humans left in the voice channel.");
+                                interaction.channel.send({ embeds: [cancelEmbed] });
+                            })
+                            .catch(error => {
+                                console.log('Could not delete pending message:', error.message);
+                                const cancelEmbed = EmbedBuilder.createSessionEndEmbed("Water reminder session cancelled - no humans left in the voice channel.");
+                                interaction.channel.send({ embeds: [cancelEmbed] });
+                            });
                     }
                 }
             }, 30000); // 30 seconds

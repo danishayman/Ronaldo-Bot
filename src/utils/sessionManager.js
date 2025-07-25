@@ -34,7 +34,7 @@ class SessionManager {
     }
 
     // Start an active session
-    startActiveSession(guildId, voiceChannel, textChannel, intervalMinutes, participants) {
+    startActiveSession(guildId, voiceChannel, textChannel, intervalMinutes, participants, pendingMessage = null) {
         const participantsList = Array.from(participants)
             .map(userId => `<@${userId}>`)
             .join(" ");
@@ -52,6 +52,17 @@ class SessionManager {
             timestamp: new Date().toISOString()
         };
 
+        // Delete the pending session message if provided
+        if (pendingMessage) {
+            pendingMessage.delete()
+                .then(() => {
+                    console.log('Deleted pending session message');
+                })
+                .catch(error => {
+                    console.log('Could not delete pending session message:', error.message);
+                });
+        }
+
         textChannel.send({ embeds: [startEmbed] });
 
         const reminderInterval = setInterval(() => {
@@ -63,7 +74,8 @@ class SessionManager {
             interval: reminderInterval,
             voiceChannel: voiceChannel,
             textChannel: textChannel,
-            participants: participants
+            participants: participants,
+            lastReminderMessageId: null // Track the last reminder message for auto-deletion
         });
     }
 
@@ -72,6 +84,12 @@ class SessionManager {
         const session = this.activeSessions.get(guildId);
         if (session) {
             clearInterval(session.interval);
+            
+            // Delete the last reminder message when stopping the session
+            if (session.lastReminderMessageId && session.textChannel) {
+                this._deleteLastReminder(guildId, session.textChannel);
+            }
+            
             this.activeSessions.delete(guildId);
             return true;
         }
@@ -110,6 +128,31 @@ class SessionManager {
         return waterReminders.messages[randomIndex];
     }
 
+    // Private method to delete the last reminder message
+    _deleteLastReminder(guildId, textChannel) {
+        const session = this.activeSessions.get(guildId);
+        if (session && session.lastReminderMessageId) {
+            textChannel.messages.fetch(session.lastReminderMessageId)
+                .then(message => {
+                    message.delete()
+                        .then(() => {
+                            console.log(`Deleted old reminder message: ${session.lastReminderMessageId}`);
+                        })
+                        .catch(error => {
+                            // Message might already be deleted or bot lacks permissions
+                            console.log(`Could not delete old reminder message: ${error.message}`);
+                        });
+                })
+                .catch(error => {
+                    // Message not found (might have been manually deleted)
+                    console.log(`Old reminder message not found: ${error.message}`);
+                });
+            
+            // Clear the stored message ID since we attempted to delete it
+            session.lastReminderMessageId = null;
+        }
+    }
+
     // Private method to send reminder
     _sendReminder(voiceChannel, textChannel, participants, intervalMinutes, guildId) {
         // Get current human members in the voice channel
@@ -122,6 +165,9 @@ class SessionManager {
             });
             
             if (activeParticipants.length > 0) {
+                // Delete the previous reminder message if it exists
+                this._deleteLastReminder(guildId, textChannel);
+                
                 const activeMentions = activeParticipants
                     .map(userId => `<@${userId}>`)
                     .join(" ");
@@ -140,7 +186,18 @@ ${randomReminder.gif}
 
 ⏰ Next reminder in ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''} • Today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
                 
-                textChannel.send(reminderMessage);
+                // Send the new reminder and store its message ID
+                textChannel.send(reminderMessage)
+                    .then(sentMessage => {
+                        // Store the message ID for future deletion
+                        const session = this.activeSessions.get(guildId);
+                        if (session) {
+                            session.lastReminderMessageId = sentMessage.id;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error sending reminder message:', error);
+                    });
             }
         } else {
             // Stop the session if no humans are left in voice channel

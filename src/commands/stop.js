@@ -43,6 +43,17 @@ module.exports = {
             
             sessionManager.removePendingSession(guildId);
             
+            // Delete the pending session message if it exists
+            if (pendingSession.message) {
+                pendingSession.message.delete()
+                    .then(() => {
+                        console.log('Deleted pending session message due to manual stop');
+                    })
+                    .catch(error => {
+                        console.log('Could not delete pending session message:', error.message);
+                    });
+            }
+            
             const stopEmbed = EmbedBuilder.createErrorEmbed(
                 "🛑 Water Reminder Cancelled",
                 `The pending water reminder session has been cancelled by <@${userId}>.`

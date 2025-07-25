@@ -30,7 +30,7 @@ module.exports = {
         
         // Check pending sessions to see if any voice channels became empty
         for (const [guildId, pendingSession] of sessionManager.getAllPendingSessions()) {
-            const { voiceChannel, textChannel } = pendingSession;
+            const { voiceChannel, textChannel, message } = pendingSession;
             
             if (oldState.channelId === voiceChannel.id || newState.channelId === voiceChannel.id) {
                 const humanMembers = voiceChannel.members.filter(member => !member.user.bot);
@@ -38,6 +38,17 @@ module.exports = {
                 if (humanMembers.size === 0) {
                     // Cancel the pending session
                     sessionManager.removePendingSession(guildId);
+                    
+                    // Delete the pending message if it exists
+                    if (message) {
+                        message.delete()
+                            .then(() => {
+                                console.log('Deleted pending session message due to empty voice channel');
+                            })
+                            .catch(error => {
+                                console.log('Could not delete pending session message:', error.message);
+                            });
+                    }
                     
                     if (textChannel) {
                         const cancelEmbed = EmbedBuilder.createSessionEndEmbed(

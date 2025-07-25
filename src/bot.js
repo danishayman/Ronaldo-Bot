@@ -10,7 +10,8 @@ class RonaldoBot {
             intents: [
                 GatewayIntentBits.Guilds, 
                 GatewayIntentBits.GuildVoiceStates,
-                GatewayIntentBits.GuildMessageReactions
+                GatewayIntentBits.GuildMessageReactions,
+                GatewayIntentBits.GuildMessages
             ],
             partials: [Partials.Message, Partials.Channel, Partials.Reaction]
         });
