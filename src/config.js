@@ -1,7 +1,7 @@
 // Configuration constants for the Ronaldo Bot
 module.exports = {
     // Interval limits for water reminders (in minutes)
-    MIN_INTERVAL: 1,
+    MIN_INTERVAL: 30,
     MAX_INTERVAL: 180,
     
     // Session timeout for pending sessions (in milliseconds)
