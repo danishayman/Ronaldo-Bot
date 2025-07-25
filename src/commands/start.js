@@ -1,5 +1,6 @@
 const { MIN_INTERVAL, MAX_INTERVAL } = require('../config');
 const EmbedBuilder = require('../utils/embedBuilder');
+const { MessageFlags } = require('discord.js');
 
 module.exports = {
     name: 'start',
@@ -11,7 +12,7 @@ module.exports = {
         if (intervalMinutes < MIN_INTERVAL || intervalMinutes > MAX_INTERVAL) {
             await interaction.reply({
                 content: `❌ Interval must be between ${MIN_INTERVAL} and ${MAX_INTERVAL} minutes.`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -20,7 +21,7 @@ module.exports = {
         if (sessionManager.hasSession(guildId)) {
             await interaction.reply({
                 content: "❌ There's already an active or pending water reminder session in this server. Use `/ronaldo stop` to end it first.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -63,7 +64,7 @@ module.exports = {
 
 React with ✅ to join • Session starts in 30 seconds`;
 
-            const message = await interaction.reply({ content: initialMessage, fetchReply: true });
+            const message = await interaction.reply({ content: initialMessage }).withResponse();
             await message.react("✅");
 
             // Store the pending session
