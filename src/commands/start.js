@@ -30,7 +30,7 @@ module.exports = {
         if (!voiceChannel) {
             await interaction.reply({
                 content: "❌ You must be in a voice channel to start.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }

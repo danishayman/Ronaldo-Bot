@@ -1,4 +1,5 @@
 const EmbedBuilder = require('../utils/embedBuilder');
+const { MessageFlags } = require('discord.js');
 
 module.exports = {
     name: 'stop',
@@ -16,7 +17,7 @@ module.exports = {
                     "Only participants who have joined the water reminder session can stop it. Use `/ronaldo join` to join the session first!"
                 );
                 
-                await interaction.reply({ embeds: [notParticipantEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [notParticipantEmbed], flags: MessageFlags.Ephemeral });
                 return;
             }
             
@@ -36,7 +37,7 @@ module.exports = {
                     "Only participants who have joined the water reminder session can stop it. React with ✅ on the session message or use `/ronaldo join` to join first!"
                 );
                 
-                await interaction.reply({ embeds: [notParticipantEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [notParticipantEmbed], flags: MessageFlags.Ephemeral });
                 return;
             }
             

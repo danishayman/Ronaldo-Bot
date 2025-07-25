@@ -2,6 +2,7 @@ const startCommand = require('./start');
 const stopCommand = require('./stop');
 const joinCommand = require('./join');
 const leaveCommand = require('./leave');
+const { MessageFlags } = require('discord.js');
 
 class CommandHandler {
     constructor(sessionManager) {
@@ -29,7 +30,7 @@ class CommandHandler {
                     
                     const errorResponse = {
                         content: "❌ An error occurred while executing this command. Please try again.",
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     };
 
                     if (interaction.replied || interaction.deferred) {

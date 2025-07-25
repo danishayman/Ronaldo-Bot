@@ -1,4 +1,5 @@
 const EmbedBuilder = require('../utils/embedBuilder');
+const { MessageFlags } = require('discord.js');
 
 module.exports = {
     name: 'join',
@@ -13,7 +14,7 @@ module.exports = {
                 "No active water reminder session found in this server. Use `/ronaldo start` to create one!"
             );
             
-            await interaction.reply({ embeds: [noSessionEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [noSessionEmbed], flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -22,7 +23,7 @@ module.exports = {
         if (!userVoiceChannel) {
             await interaction.reply({
                 content: "❌ You must be in a voice channel to join the session.",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -31,7 +32,7 @@ module.exports = {
         if (userVoiceChannel.id !== session.voiceChannel.id) {
             await interaction.reply({
                 content: `❌ You must be in the same voice channel as the active session: ${session.voiceChannel.name}`,
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
@@ -40,7 +41,7 @@ module.exports = {
         if (sessionManager.isParticipant(guildId, interaction.user.id)) {
             await interaction.reply({
                 content: "✅ You're already participating in this water reminder session!",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }

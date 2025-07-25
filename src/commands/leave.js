@@ -1,4 +1,5 @@
 const EmbedBuilder = require('../utils/embedBuilder');
+const { MessageFlags } = require('discord.js');
 
 module.exports = {
     name: 'leave',
@@ -13,7 +14,7 @@ module.exports = {
                 "No active water reminder session found in this server."
             );
             
-            await interaction.reply({ embeds: [noSessionEmbed], ephemeral: true });
+            await interaction.reply({ embeds: [noSessionEmbed], flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -21,7 +22,7 @@ module.exports = {
         if (!sessionManager.isParticipant(guildId, interaction.user.id)) {
             await interaction.reply({
                 content: "❌ You're not currently participating in any water reminder session!",
-                ephemeral: true,
+                flags: MessageFlags.Ephemeral,
             });
             return;
         }
