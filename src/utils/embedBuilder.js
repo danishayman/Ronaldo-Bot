@@ -44,17 +44,6 @@ class EmbedBuilder {
         };
     }
 
-    static createReminderEmbed(participants) {
-        return {
-            color: COLORS.INFO,
-            title: "💧 HYDRATION TIME! 🥤",
-            description: `**${participants}**\n\n🌊 **DRINK WATER NOW!** 🌊\n\n*"Water is the driving force of all nature." - Leonardo da Vinci*`,
-            image: { url: MEDIA.RONALDO_DRINKING },
-            footer: { text: "Ronaldo Bot • Stay hydrated! 💪" },
-            timestamp: new Date().toISOString()
-        };
-    }
-
     static createSessionStartEmbed(intervalMinutes, participants) {
         return {
             color: COLORS.PRIMARY,
