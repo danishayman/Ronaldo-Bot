@@ -64,7 +64,7 @@ module.exports = {
 
 React with ✅ to join • Session starts in 30 seconds`;
 
-            const message = await interaction.reply({ content: initialMessage }).withResponse();
+            const message = await interaction.reply({ content: initialMessage, fetchReply: true });
             await message.react("✅");
 
             // Store the pending session
