@@ -40,6 +40,9 @@ class RonaldoBot {
     }
 
     async stop() {
+        // Stop presence rotation
+        this.eventHandler.stopPresenceRotation();
+        
         // Clean up any active sessions
         for (const [guildId] of this.sessionManager.getAllActiveSessions()) {
             this.sessionManager.stopActiveSession(guildId);
