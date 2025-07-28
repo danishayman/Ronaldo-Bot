@@ -184,7 +184,12 @@ ${randomReminder.text}
 
 ${randomReminder.gif}
 
-⏰ Next reminder in ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''} • Today at ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+⏰ Next reminder in ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''} • Today at ${new Date().toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit', 
+                    hour12: true,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+                })}`;
                 
                 // Send the new reminder and store its message ID
                 textChannel.send(reminderMessage)
