@@ -3,6 +3,7 @@ const stopCommand = require('./stop');
 const joinCommand = require('./join');
 const leaveCommand = require('./leave');
 const botstatsCommand = require('./botstats');
+const helpCommand = require('./help');
 const { MessageFlags } = require('discord.js');
 
 class CommandHandler {
@@ -14,7 +15,8 @@ class CommandHandler {
             ['stop', stopCommand],
             ['join', joinCommand],
             ['leave', leaveCommand],
-            ['botstats', botstatsCommand]
+            ['botstats', botstatsCommand],
+            ['help', helpCommand]
         ]);
     }
 

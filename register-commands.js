@@ -24,6 +24,9 @@ const commands = [
         .addSubcommand(sub =>
             sub.setName('botstats')
                 .setDescription('View bot statistics and uptime information'))
+        .addSubcommand(sub =>
+            sub.setName('help')
+                .setDescription('Show a list of all available commands and their descriptions'))
         .toJSON()
 ];
 
