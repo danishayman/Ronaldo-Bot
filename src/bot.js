@@ -17,7 +17,7 @@ class RonaldoBot {
         });
 
         this.sessionManager = new SessionManager();
-        this.commandHandler = new CommandHandler(this.sessionManager);
+        this.commandHandler = new CommandHandler(this.sessionManager, this.client);
         this.eventHandler = new EventHandler(this.client, this.sessionManager);
 
         this.setupInteractionHandler();

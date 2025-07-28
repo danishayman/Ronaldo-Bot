@@ -21,6 +21,9 @@ const commands = [
         .addSubcommand(sub =>
             sub.setName('leave')
                 .setDescription('Leave the current water reminder session'))
+        .addSubcommand(sub =>
+            sub.setName('botstats')
+                .setDescription('View bot statistics and uptime information'))
         .toJSON()
 ];
 
