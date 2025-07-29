@@ -6,14 +6,14 @@ module.exports = {
     async execute(interaction, sessionManager) {
         const guildId = interaction.guild.id;
         const session = sessionManager.getActiveSession(guildId);
-        
+
         // Check if there's an active session
         if (!session) {
             const noSessionEmbed = EmbedBuilder.createWarningEmbed(
                 "❌ No Active Session",
                 "No active water reminder session found in this server."
             );
-            
+
             await interaction.reply({ embeds: [noSessionEmbed], flags: MessageFlags.Ephemeral });
             return;
         }
@@ -34,7 +34,7 @@ module.exports = {
         if (remainingParticipants === 0) {
             // No participants left, end the session
             sessionManager.stopActiveSession(guildId);
-            
+
             const sessionEndedEmbed = EmbedBuilder.createSessionEndEmbed("Water reminder session ended - no participants remaining.");
             await interaction.reply({ embeds: [sessionEndedEmbed] });
 
@@ -52,12 +52,12 @@ module.exports = {
                 const notifyEmbed = EmbedBuilder.createInfoEmbed(
                     "👋 Participant Left",
                     `<@${interaction.user.id}> has left the water reminder session.`,
-                    { 
+                    {
                         footer: `${remainingParticipants} participant(s) remaining`,
                         thumbnail: require('../config').MEDIA.RONALDO_STOP
                     }
                 );
-                
+
                 session.textChannel.send({ embeds: [notifyEmbed] });
             }
         }

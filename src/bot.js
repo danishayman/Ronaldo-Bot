@@ -8,7 +8,7 @@ class RonaldoBot {
     constructor() {
         this.client = new Client({
             intents: [
-                GatewayIntentBits.Guilds, 
+                GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildVoiceStates,
                 GatewayIntentBits.GuildMessageReactions,
                 GatewayIntentBits.GuildMessages
@@ -42,12 +42,12 @@ class RonaldoBot {
     async stop() {
         // Stop presence rotation
         this.eventHandler.stopPresenceRotation();
-        
+
         // Clean up any active sessions
         for (const [guildId] of this.sessionManager.getAllActiveSessions()) {
             this.sessionManager.stopActiveSession(guildId);
         }
-        
+
         // Clear pending sessions
         for (const [guildId] of this.sessionManager.getAllPendingSessions()) {
             this.sessionManager.removePendingSession(guildId);

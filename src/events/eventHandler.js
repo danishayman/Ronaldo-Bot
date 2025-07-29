@@ -56,7 +56,7 @@ class EventHandler {
 
         // Set initial presence
         this.client.user.setPresence(presences[0]);
-        
+
         // Rotate presence every 5 minutes (300000 ms)
         this.presenceInterval = setInterval(() => {
             this.presenceIndex = (this.presenceIndex + 1) % presences.length;

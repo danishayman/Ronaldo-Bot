@@ -36,7 +36,7 @@ class ReminderManager {
         };
 
         this.data.messages.push(newReminder);
-        
+
         if (this.saveData()) {
             console.log(`✅ Added new reminder: "${text.substring(0, 50)}..."`);
             return true;
@@ -47,7 +47,7 @@ class ReminderManager {
     removeReminder(index) {
         if (index >= 0 && index < this.data.messages.length) {
             const removed = this.data.messages.splice(index, 1)[0];
-            
+
             if (this.saveData()) {
                 console.log(`✅ Removed reminder: "${removed.text.substring(0, 50)}..."`);
                 return true;
@@ -78,11 +78,11 @@ class ReminderManager {
 // Example usage functions
 function addNewReminder() {
     const manager = new ReminderManager();
-    
+
     // Example of adding a new reminder
     const newText = `🌊 **CHAMPIONSHIP HYDRATION!** 🏆\n\n*"I don't have to show anything to anyone. There is nothing to prove."* - Cristiano Ronaldo\n\n💧 **PROVE YOUR HYDRATION SKILLS!** 💧`;
     const newGif = "https://media.tenor.com/example-new-gif.gif";
-    
+
     manager.addReminder(newText, newGif);
 }
 

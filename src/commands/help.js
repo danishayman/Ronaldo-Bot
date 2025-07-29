@@ -34,7 +34,7 @@ module.exports = {
                     inline: false
                 }
             )
-            .setFooter({ 
+            .setFooter({
                 text: 'Stay hydrated! 💧 | Use these commands to manage your water reminders',
                 iconURL: null
             })

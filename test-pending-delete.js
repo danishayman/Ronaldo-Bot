@@ -63,14 +63,14 @@ const retrievedPendingSession = sessionManager.getPendingSession(mockGuildId);
 if (retrievedPendingSession) {
     sessionManager.removePendingSession(mockGuildId);
     console.log('📋 Retrieved and removed pending session from manager');
-    
+
     // This should delete the pending message and start the session
     sessionManager.startActiveSession(
-        mockGuildId, 
-        mockVoiceChannel, 
-        mockTextChannel, 
-        5, 
-        retrievedPendingSession.participants, 
+        mockGuildId,
+        mockVoiceChannel,
+        mockTextChannel,
+        5,
+        retrievedPendingSession.participants,
         retrievedPendingSession.message  // This is the key - passing the message to be deleted
     );
 }
@@ -81,7 +81,7 @@ setTimeout(() => {
     console.log('- ✅ Delete pending message when session starts');
     console.log('- ✅ Send session started embed after deleting pending message');
     console.log('- ✅ Handle pending message deletion errors gracefully');
-    
+
     console.log('\nFlow verified:');
     console.log('1. User runs /ronaldo start');
     console.log('2. "Water Reminder - Waiting for Participants!" message is sent');

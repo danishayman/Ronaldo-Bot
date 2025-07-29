@@ -32,7 +32,7 @@ class CommandHandler {
                     await command.execute(interaction, this.sessionManager, this.client);
                 } catch (error) {
                     console.error(`Error executing command ${subcommand}:`, error);
-                    
+
                     const errorResponse = {
                         content: "❌ An error occurred while executing this command. Please try again.",
                         flags: MessageFlags.Ephemeral

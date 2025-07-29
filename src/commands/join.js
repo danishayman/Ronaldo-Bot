@@ -6,14 +6,14 @@ module.exports = {
     async execute(interaction, sessionManager) {
         const guildId = interaction.guild.id;
         const session = sessionManager.getActiveSession(guildId);
-        
+
         // Check if there's an active session
         if (!session) {
             const noSessionEmbed = EmbedBuilder.createWarningEmbed(
                 "❌ No Active Session",
                 "No active water reminder session found in this server. Use `/ronaldo start` to create one!"
             );
-            
+
             await interaction.reply({ embeds: [noSessionEmbed], flags: MessageFlags.Ephemeral });
             return;
         }
@@ -60,7 +60,7 @@ module.exports = {
                 `<@${interaction.user.id}> has joined the water reminder session!`,
                 { footer: "The hydration squad grows stronger! 💪" }
             );
-            
+
             session.textChannel.send({ embeds: [notifyEmbed] });
         }
     }

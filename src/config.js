@@ -3,10 +3,10 @@ module.exports = {
     // Interval limits for water reminders (in minutes)
     MIN_INTERVAL: 30,
     MAX_INTERVAL: 180,
-    
+
     // Session timeout for pending sessions (in milliseconds)
     PENDING_SESSION_TIMEOUT: 30000, // 30 seconds
-    
+
     // Colors for embeds
     COLORS: {
         SUCCESS: 0x00FF00,     // Green
@@ -16,7 +16,7 @@ module.exports = {
         PRIMARY: 0x00BFFF,     // Deep Sky Blue
         NEUTRAL: 0xFFA500      // Orange
     },
-    
+
     // GIF and image URLs
     MEDIA: {
         RONALDO_CELEBRATION: "https://media.tenor.com/vm1WwOBQWUMAAAAM/euro2020-cristiano-ronaldo.gif",

@@ -38,15 +38,15 @@ module.exports = {
         // Check if there are other people in the voice channel besides the initiator
         const members = [...voiceChannel.members.values()].filter(member => !member.user.bot);
         const otherMembers = members.filter(member => member.id !== interaction.user.id);
-        
+
         if (otherMembers.length === 0) {
             // If only the initiator is in the channel, start immediately
             const participants = new Set([interaction.user.id]);
             const participantsList = `<@${interaction.user.id}>`;
-            
+
             const startEmbed = EmbedBuilder.createSessionStartEmbed(intervalMinutes, participantsList);
             await interaction.reply({ embeds: [startEmbed] });
-            
+
             // Start the reminder session immediately with only the initiator
             sessionManager.startActiveSession(guildId, voiceChannel, interaction.channel, intervalMinutes, participants);
         } else {
@@ -54,7 +54,7 @@ module.exports = {
             const otherMemberMentions = otherMembers
                 .map(member => `<@${member.id}>`)
                 .join(" ");
-            
+
             const initialMessage = `💧 **Water Reminder - Waiting for Participants!** 🥤
 
 **SIUUUU!** ${otherMemberMentions} React with ✅ to join the hydration session!
@@ -82,7 +82,7 @@ React with ✅ to join • Session starts in 30 seconds`;
                 const pendingSession = sessionManager.getPendingSession(guildId);
                 if (pendingSession) {
                     sessionManager.removePendingSession(guildId);
-                    
+
                     // Check if there are still people in the voice channel
                     const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
                     if (currentHumanMembers.size > 0) {

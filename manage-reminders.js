@@ -22,7 +22,7 @@ function showMenu() {
 }
 
 function handleChoice(choice) {
-    switch(choice) {
+    switch (choice) {
         case '1':
             manager.listReminders();
             showMenuAndPrompt();

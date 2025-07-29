@@ -54,7 +54,7 @@ setTimeout(() => {
     // Simulate that the first message was sent and stored
     const session = sessionManager.activeSessions.get(mockGuildId);
     session.lastReminderMessageId = 'message-12345';
-    
+
     sessionManager._sendReminder(
         mockSession.voiceChannel,
         mockSession.textChannel,
@@ -62,11 +62,11 @@ setTimeout(() => {
         5,
         mockGuildId
     );
-    
+
     setTimeout(() => {
         console.log('\n4. Testing session stop (should delete last message)...');
         sessionManager.stopActiveSession(mockGuildId);
-        
+
         console.log('\n✅ Auto-delete test completed!');
         console.log('\nFeatures tested:');
         console.log('- ✅ Store message ID after sending reminder');

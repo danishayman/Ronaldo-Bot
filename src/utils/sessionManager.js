@@ -84,12 +84,12 @@ class SessionManager {
         const session = this.activeSessions.get(guildId);
         if (session) {
             clearInterval(session.interval);
-            
+
             // Delete the last reminder message when stopping the session
             if (session.lastReminderMessageId && session.textChannel) {
                 this._deleteLastReminder(guildId, session.textChannel);
             }
-            
+
             this.activeSessions.delete(guildId);
             return true;
         }
@@ -147,7 +147,7 @@ class SessionManager {
                     // Message not found (might have been manually deleted)
                     console.log(`Old reminder message not found: ${error.message}`);
                 });
-            
+
             // Clear the stored message ID since we attempted to delete it
             session.lastReminderMessageId = null;
         }
@@ -157,24 +157,24 @@ class SessionManager {
     _sendReminder(voiceChannel, textChannel, participants, intervalMinutes, guildId) {
         // Get current human members in the voice channel
         const currentHumanMembers = voiceChannel.members.filter(member => !member.user.bot);
-        
+
         if (currentHumanMembers.size > 0) {
             // Only mention participants who are still in the voice channel
             const activeParticipants = Array.from(participants).filter(userId => {
                 return currentHumanMembers.has(userId);
             });
-            
+
             if (activeParticipants.length > 0) {
                 // Delete the previous reminder message if it exists
                 this._deleteLastReminder(guildId, textChannel);
-                
+
                 const activeMentions = activeParticipants
                     .map(userId => `<@${userId}>`)
                     .join(" ");
-                
+
                 // Get a random reminder message and GIF
                 const randomReminder = this._getRandomReminder();
-                
+
                 // Send as plain text message instead of embed
                 const reminderMessage = `💧 **HYDRATION REMINDER!** 💧
 
@@ -184,13 +184,13 @@ ${randomReminder.text}
 
 ${randomReminder.gif}
 
-⏰ Next reminder in ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''} • Today at ${new Date().toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit', 
+⏰ Next reminder in ${intervalMinutes} minute${intervalMinutes !== 1 ? 's' : ''} • Today at ${new Date().toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
                     hour12: true,
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                 })}`;
-                
+
                 // Send the new reminder and store its message ID
                 textChannel.send(reminderMessage)
                     .then(sentMessage => {
@@ -207,7 +207,7 @@ ${randomReminder.gif}
         } else {
             // Stop the session if no humans are left in voice channel
             this.stopActiveSession(guildId);
-            
+
             const endEmbed = {
                 color: COLORS.ERROR,
                 title: "🛑 Session Ended",
@@ -216,7 +216,7 @@ ${randomReminder.gif}
                     url: MEDIA.SAD_GOODBYE
                 }
             };
-            
+
             textChannel.send({ embeds: [endEmbed] });
         }
     }
